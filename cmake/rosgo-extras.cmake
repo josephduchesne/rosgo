@@ -35,6 +35,15 @@ function(_rosgo_make_gopath gopath_result)
 endfunction()
 
 
+function(_rosgo_make_goarch goarch_result)
+  if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm")
+    set(${goarch_result} "arm" PARENT_SCOPE)
+  else()
+    set(${goarch_result} $ENV{GOARCH} PARENT_SCOPE)
+  endif()
+endfunction()
+
+
 # Clear old symlinks and create new ones that point original sources.
 function(_rosgo_mirror_go_files package var)
     get_filename_component(orig_dir "${PROJECT_SOURCE_DIR}/src/${package}" ABSOLUTE)
@@ -92,10 +101,11 @@ function(catkin_add_go_executable)
     set(exe "${CATKIN_DEVEL_PREFIX}/lib/${PROJECT_NAME}/${exe_name}")
 
     _rosgo_make_gopath(gopath)
+    _rosgo_make_goarch(goarch)
 
     add_custom_target(
             ${catkin_add_go_executable_TARGET} ALL
-            COMMAND env GOPATH=${gopath} go build -o ${exe} ${package}
+            COMMAND env GOPATH=${gopath} GOARCH=${goarch} go build -o ${exe} ${package}
             DEPENDS ${catkin_add_go_executable_DEPENDS} ${src_links})
 endfunction()
 
@@ -119,44 +129,58 @@ function(catkin_add_go_library)
     get_property(gopkg GLOBAL PROPERTY _ROSGO_PKG)
 
     _rosgo_make_gopath(gopath)
+    _rosgo_make_goarch(goarch)
 
     add_custom_target(
             ${catkin_add_go_library_TARGET} ALL
-            COMMAND env GOPATH=${gopath} go build -o ${gopkg}/${package}.a ${package}
+            COMMAND env GOPATH=${gopath} GOARCH=${goarch} go build -o ${gopkg}/${package}.a ${package}
             DEPENDS ${catkin_add_go_library_DEPENDS} ${src_links})
     list(INSERT catkin_GO_LIBRARIES 0 ${catkin_add_go_library_TARGET})
 endfunction()
 
 
+# Add an external go package (e.g., github....)
+function(catkin_add_go_pkg pkg_name pkg_go_source)
+    _rosgo_make_gopath(gopath)
+    message("env GOPATH=${gopath} go get -v ${pkg_go_source}")
+    add_custom_target(
+        ${pkg_name}
+        COMMAND env GOPATH=${gopath} go get -v ${pkg_go_source}
+    )
+endfunction()
+
+
 # Add test target
 function(catkin_add_go_test)
-    set(options)
-    set(one_value_args)
-    set(multi_value_args DEPENDS)
-    cmake_parse_arguments(catkin_add_go_test "${options}" "${one_value_args}"
-                          "${multi_value_args}" "${ARGN}")
-    list(GET catkin_add_go_test_UNPARSED_ARGUMENTS 0 package)
-    string(REPLACE "/" "_" target "${package}")
+    if(CATKIN_ENABLE_TESTING)
+        set(options)
+        set(one_value_args)
+        set(multi_value_args DEPENDS)
+        cmake_parse_arguments(catkin_add_go_test "${options}" "${one_value_args}"
+                              "${multi_value_args}" "${ARGN}")
+        list(GET catkin_add_go_test_UNPARSED_ARGUMENTS 0 package)
+        string(REPLACE "/" "_" target "${package}")
 
-    _rosgo_mirror_go_files(${package} src_links)
+        _rosgo_mirror_go_files(${package} src_links)
 
-    _rosgo_make_gopath(gopath)
+        _rosgo_make_gopath(gopath)
 
-    set(_depends "${catkin_add_go_test_DEPENDS};${src_links}")
+        set(_depends "${catkin_add_go_test_DEPENDS};${src_links}")
 
-    add_custom_target(
-        run_tests_${PROJECT_NAME}_go_test_${target}
-        #COMMAND env GOPATH=${gopath} go test ${package}
-        COMMAND ${CATKIN_ENV} env GOPATH=${gopath} rosrun rosgo rosgo-test-wrapper.sh ${package}
-        DEPENDS ${_depends})
+        add_custom_target(
+            run_tests_${PROJECT_NAME}_go_test_${target}
+            #COMMAND env GOPATH=${gopath} go test ${package}
+            COMMAND ${CATKIN_ENV} env GOPATH=${gopath} rosrun rosgo rosgo-test-wrapper.sh ${package}
+            DEPENDS ${_depends})
 
-    # Register this test to workspace-wide run_tests target
-    if(NOT TARGET run_tests_${PROJECT_NAME}_go_test)
-        add_custom_target(run_tests_${PROJECT_NAME}_go_test)
-        add_dependencies(run_tests run_tests_${PROJECT_NAME}_go_test)
+        # Register this test to workspace-wide run_tests target
+        if(NOT TARGET run_tests_${PROJECT_NAME}_go_test)
+            add_custom_target(run_tests_${PROJECT_NAME}_go_test)
+            add_dependencies(run_tests run_tests_${PROJECT_NAME}_go_test)
+        endif()
+        add_dependencies(run_tests_${PROJECT_NAME}_go_test
+                         run_tests_${PROJECT_NAME}_go_test_${target})
     endif()
-    add_dependencies(run_tests_${PROJECT_NAME}_go_test
-                     run_tests_${PROJECT_NAME}_go_test_${target})
 endfunction()
 
 
