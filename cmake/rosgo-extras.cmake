@@ -1,11 +1,14 @@
 # vim: ft=cmake :
 
+
+
 function(_rosgo_setup_global_variable)
+    set(GO_BIN_PATH "/usr/lib/go-1.6/bin" PARENT_SCOPE)
     set(libdir "${CATKIN_DEVEL_PREFIX}/lib")
     set(root "${libdir}/go")
     file(MAKE_DIRECTORY ${root})
-    execute_process(COMMAND go env GOARCH OUTPUT_VARIABLE goarch OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND go env GOOS OUTPUT_VARIABLE goos OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GO_BIN_PATH}/go env GOARCH OUTPUT_VARIABLE goarch OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GO_BIN_PATH}/go env GOOS OUTPUT_VARIABLE goos OUTPUT_STRIP_TRAILING_WHITESPACE)
     set_property(GLOBAL PROPERTY _ROSGO_ROOT "${root}")
     set_property(GLOBAL PROPERTY _ROSGO_BIN "${libdir}")
     set_property(GLOBAL PROPERTY _ROSGO_SRC "${root}/src")
@@ -102,10 +105,9 @@ function(catkin_add_go_executable)
 
     _rosgo_make_gopath(gopath)
     _rosgo_make_goarch(goarch)
-
     add_custom_target(
             ${catkin_add_go_executable_TARGET} ALL
-            COMMAND env GOPATH=${gopath} GOARCH=${goarch} go build -o ${exe} ${package}
+            COMMAND env GOPATH=${gopath} GOARCH=${goarch} ${GO_BIN_PATH}/go build -o ${exe} ${package}
             DEPENDS ${catkin_add_go_executable_DEPENDS} ${src_links})
 endfunction()
 
@@ -133,7 +135,7 @@ function(catkin_add_go_library)
 
     add_custom_target(
             ${catkin_add_go_library_TARGET} ALL
-            COMMAND env GOPATH=${gopath} GOARCH=${goarch} go build -o ${gopkg}/${package}.a ${package}
+            COMMAND env GOPATH=${gopath} GOARCH=${goarch} ${GO_BIN_PATH}/go build -o ${gopkg}/${package}.a ${package}
             DEPENDS ${catkin_add_go_library_DEPENDS} ${src_links})
     list(INSERT catkin_GO_LIBRARIES 0 ${catkin_add_go_library_TARGET})
 endfunction()
@@ -142,10 +144,10 @@ endfunction()
 # Add an external go package (e.g., github....)
 function(catkin_add_go_pkg pkg_name pkg_go_source)
     _rosgo_make_gopath(gopath)
-    message("env GOPATH=${gopath} go get -v ${pkg_go_source}")
+    message("env GOPATH=${gopath} ${GO_BIN_PATH}/go get -v ${pkg_go_source}")
     add_custom_target(
         ${pkg_name}
-        COMMAND env GOPATH=${gopath} go get -v ${pkg_go_source}
+        COMMAND env GOPATH=${gopath} ${GO_BIN_PATH}/go get -v ${pkg_go_source}
     )
 endfunction()
 
@@ -169,7 +171,7 @@ function(catkin_add_go_test)
 
         add_custom_target(
             run_tests_${PROJECT_NAME}_go_test_${target}
-            #COMMAND env GOPATH=${gopath} go test ${package}
+            #COMMAND env GOPATH=${gopath} ${GO_BIN_PATH}/go test ${package}
             COMMAND ${CATKIN_ENV} env GOPATH=${gopath} rosrun rosgo rosgo-test-wrapper.sh ${package}
             DEPENDS ${_depends})
 

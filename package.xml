@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
   <name>rosgo</name>
   <version>0.0.0</version>
   <description>ROS client library for Go programming language</description>
@@ -11,6 +11,7 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>rosgo_messages</build_depend>
+  <depend>golang-1.6</depend>
 
   <export></export>
 </package>
