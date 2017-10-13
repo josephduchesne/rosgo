@@ -107,7 +107,7 @@ function(catkin_add_go_executable)
     _rosgo_make_goarch(goarch)
     add_custom_target(
             ${catkin_add_go_executable_TARGET} ALL
-            COMMAND env GOPATH=${gopath} GOARCH=${goarch} ${GO_BIN_PATH}/go build -o ${exe} ${package}
+            COMMAND env GOPATH=${gopath} GOARCH=${goarch} ${GO_BIN_PATH}/go build -o ${exe} ${package}  2>&1
             DEPENDS ${catkin_add_go_executable_DEPENDS} ${src_links})
 endfunction()
 
@@ -135,7 +135,7 @@ function(catkin_add_go_library)
 
     add_custom_target(
             ${catkin_add_go_library_TARGET} ALL
-            COMMAND env GOPATH=${gopath} GOARCH=${goarch} ${GO_BIN_PATH}/go build -o ${gopkg}/${package}.a ${package}
+            COMMAND env GOPATH=${gopath} GOARCH=${goarch} ${GO_BIN_PATH}/go build -o ${gopkg}/${package}.a ${package} 2>&1
             DEPENDS ${catkin_add_go_library_DEPENDS} ${src_links})
     list(INSERT catkin_GO_LIBRARIES 0 ${catkin_add_go_library_TARGET})
 endfunction()
@@ -144,10 +144,9 @@ endfunction()
 # Add an external go package (e.g., github....)
 function(catkin_add_go_pkg pkg_name pkg_go_source)
     _rosgo_make_gopath(gopath)
-    message("env GOPATH=${gopath} ${GO_BIN_PATH}/go get -v ${pkg_go_source}")
     add_custom_target(
         ${pkg_name}
-        COMMAND env GOPATH=${gopath} ${GO_BIN_PATH}/go get -v ${pkg_go_source}
+        COMMAND env GOPATH=${gopath} ${GO_BIN_PATH}/go get -v ${pkg_go_source} 2>&1
     )
 endfunction()
 
